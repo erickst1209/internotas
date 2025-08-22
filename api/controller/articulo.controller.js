@@ -55,44 +55,54 @@ const Articulo = {
 
     // Actualizar artículo por título
     update: async (req, res) => {
-        try {
-            const { titulo } = req.params;
-            const articulo = await Articulos.findOne({ titulo });
-            if (!articulo) {
-                return res.status(404).send({ error: 'Artículo no encontrado' });
-            }
+    try {
+        const { id } = req.params;
 
-            // Si se suben nuevas imágenes, reemplazamos las anteriores
-            if (req.files && req.files.length > 0) {
-                articulo.imagenes = req.files.map(file => `/uploads/${file.filename}`);
-            }
+        // Preparamos los datos que se van a actualizar
+        let updateData = { ...req.body };
 
-            Object.assign(articulo, req.body);
-            await articulo.save();
-
-            res.status(200).send(articulo);
-            console.log('Artículo actualizado:', articulo);
-        } catch (err) {
-            res.status(500).send({ error: err.message });
+        // Si hay imágenes nuevas
+        if (req.files && req.files.length > 0) {
+        updateData.imagenes = req.files.map(file => `/uploads/${file.filename}`);
         }
+
+        const articulo = await Articulos.findByIdAndUpdate(id, updateData, {
+        new: true,        // devuelve el documento actualizado
+        runValidators: true // valida según el schema
+        });
+
+        if (!articulo) {
+        return res.status(404).json({ error: "Artículo no encontrado" });
+        }
+
+        console.log("Artículo actualizado:", articulo);
+        res.status(200).json(articulo);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
     },
 
-    // Eliminar artículo por título
-    delete: async (req, res) => {
-        try {
-            const { titulo } = req.params;
-            const articulo = await Articulos.findOne({ titulo });
-            if (!articulo) {
-                return res.status(404).send({ error: 'Artículo no encontrado' });
-            }
 
-            await articulo.deleteOne();
-            console.log('Artículo borrado:', articulo.titulo);
-            res.sendStatus(204);
-        } catch (err) {
-            res.status(500).send({ error: err.message });
+    // Eliminar artículo por título
+    // DELETE /articulos/:id
+    delete: async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Buscar y borrar directamente
+        const articulo = await Articulos.findByIdAndDelete(id);
+
+        if (!articulo) {
+        return res.status(404).json({ error: "Artículo no encontrado" });
         }
+
+        console.log("Artículo borrado:", articulo.titulo);
+        res.status(200).json({ mensaje: "Artículo borrado", articulo });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
+    }
+
 };
 
 module.exports = Articulo;
